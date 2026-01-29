@@ -1,0 +1,30 @@
+# .htaccess for API Routing in cPanel
+# Upload this file to public_html/api/.htaccess
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Allow direct file access (uploads, etc.)
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+    
+    # Proxy all requests to Node.js app
+    # Note: Update port number based on Node.js Selector assigned port
+    RewriteRule ^(.*)$ http://localhost:3001/$1 [P,L]
+</IfModule>
+
+# Security Headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# Enable CORS if needed (usually handled in Express)
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "https://pixalbotics.com"
+    Header set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    Header set Access-Control-Allow-Headers "Content-Type, Authorization"
+</IfModule>
+
