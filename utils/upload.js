@@ -68,6 +68,42 @@ const pdfUpload = multer({
   }
 });
 
+// Blog upload: both image and PDF in one request (optional)
+const blogStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    if (file.fieldname === 'image') {
+      cb(null, path.join(__dirname, '../uploads/images'));
+    } else if (file.fieldname === 'pdf') {
+      cb(null, path.join(__dirname, '../uploads/pdfs'));
+    } else {
+      cb(null, path.join(__dirname, '../uploads'));
+    }
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    const name = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9]/g, '_');
+    cb(null, name + '-' + uniqueSuffix + ext);
+  }
+});
+
+const blogFileFilter = (req, file, cb) => {
+  if (file.fieldname === 'image') return imageFilter(req, file, cb);
+  if (file.fieldname === 'pdf') return pdfFilter(req, file, cb);
+  cb(new Error('Only image or pdf field allowed'), false);
+};
+
+const blogUpload = multer({
+  storage: blogStorage,
+  fileFilter: blogFileFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB per file
+  }
+}).fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'pdf', maxCount: 1 }
+]);
+
 // Multer error handler middleware
 const handleMulterError = (err, req, res, next) => {
   if (err) {
@@ -104,4 +140,4 @@ const handleMulterError = (err, req, res, next) => {
   next();
 };
 
-module.exports = { imageUpload, pdfUpload, handleMulterError };
+module.exports = { imageUpload, pdfUpload, blogUpload, handleMulterError };

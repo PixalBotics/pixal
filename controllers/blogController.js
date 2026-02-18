@@ -28,9 +28,14 @@ exports.createBlog = catchAsyncError(async (req, res, next) => {
   }
 
   try {
-    if (req.file) {
-      const url = `${req.protocol}://${req.get('host')}/uploads/pdfs/${req.file.filename}`;
-      req.body.pdfUrl = url;
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    if (req.files) {
+      if (req.files.image && req.files.image[0]) {
+        req.body.imageUrl = `${baseUrl}/uploads/images/${req.files.image[0].filename}`;
+      }
+      if (req.files.pdf && req.files.pdf[0]) {
+        req.body.pdfUrl = `${baseUrl}/uploads/pdfs/${req.files.pdf[0].filename}`;
+      }
     }
     
     const blog = await Blog.create(req.body);
@@ -74,10 +79,14 @@ exports.updateBlog = catchAsyncError(async (req, res, next) => {
   let blog = await Blog.findById(req.params.id);
   if (!blog) return next(new ErrorHandler('Blog not found', 404));
 
-  // If new file uploaded, update pdfUrl
-  if (req.file) {
-    const url = `${req.protocol}://${req.get('host')}/uploads/pdfs/${req.file.filename}`;
-    req.body.pdfUrl = url;
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  if (req.files) {
+    if (req.files.image && req.files.image[0]) {
+      req.body.imageUrl = `${baseUrl}/uploads/images/${req.files.image[0].filename}`;
+    }
+    if (req.files.pdf && req.files.pdf[0]) {
+      req.body.pdfUrl = `${baseUrl}/uploads/pdfs/${req.files.pdf[0].filename}`;
+    }
   }
 
   blog = await Blog.findByIdAndUpdate(req.params.id, req.body, {

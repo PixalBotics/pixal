@@ -4,7 +4,7 @@ const router = express.Router();
 const { createBlog, getBlogs, getBlog, updateBlog, deleteBlog } = require('../controllers/blogController');
 const { isAuthenticated } = require('../middleware/auth');
 const allowRoles = require('../middleware/roleCheck');
-const { pdfUpload, handleMulterError } = require('../utils/upload');
+const { blogUpload, handleMulterError } = require('../utils/upload');
 const { validateBlogCreate, validateMongoId, validatePagination } = require('../middleware/validation');
 
 /**
@@ -40,6 +40,10 @@ const { validateBlogCreate, validateMongoId, validatePagination } = require('../
  *                 type: string
  *                 description: Blog content
  *                 example: "This is a comprehensive guide..."
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Cover/feature image (JPEG, PNG, GIF, WebP)
  *               pdf:
  *                 type: string
  *                 format: binary
@@ -52,7 +56,7 @@ const { validateBlogCreate, validateMongoId, validatePagination } = require('../
  *       401:
  *         description: Unauthorized
  */
-router.post('/', isAuthenticated, allowRoles('admin', 'systemmanager'), pdfUpload.single('pdf'), handleMulterError, createBlog);
+router.post('/', isAuthenticated, allowRoles('admin', 'systemmanager'), blogUpload, handleMulterError, createBlog);
 
 /**
  * @swagger
@@ -149,7 +153,7 @@ router.get('/:id', validateMongoId, getBlog);
  * /api/blogs/{id}:
  *   put:
  *     summary: Update a blog
- *     description: Update blog details and optionally upload new PDF
+ *     description: Update blog details and optionally upload new image or PDF
  *     security:
  *       - bearerAuth: []
  *     tags: [Blogs]
@@ -172,6 +176,10 @@ router.get('/:id', validateMongoId, getBlog);
  *               content:
  *                 type: string
  *                 description: Blog content
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: New cover image (optional)
  *               pdf:
  *                 type: string
  *                 format: binary
@@ -186,7 +194,7 @@ router.get('/:id', validateMongoId, getBlog);
  *       403:
  *         description: Forbidden
  */
-router.put('/:id', isAuthenticated, allowRoles('admin', 'systemmanager'), pdfUpload.single('pdf'), handleMulterError, validateMongoId, updateBlog);
+router.put('/:id', isAuthenticated, allowRoles('admin', 'systemmanager'), blogUpload, handleMulterError, validateMongoId, updateBlog);
 
 /**
  * @swagger

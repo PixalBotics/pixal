@@ -16,10 +16,8 @@ const { validateTestimonialCreate, validateMongoId, validatePagination } = requi
  * @swagger
  * /api/testimonials:
  *   post:
- *     summary: Create a testimonial
- *     description: Create a new client testimonial
- *     security:
- *       - bearerAuth: []
+ *     summary: Create a testimonial (public)
+ *     description: Anyone can submit a testimonial; no authentication required
  *     tags: [Testimonials]
  *     requestBody:
  *       required: true
@@ -49,10 +47,10 @@ const { validateTestimonialCreate, validateMongoId, validatePagination } = requi
  *         description: Testimonial created successfully
  *       400:
  *         description: Validation error
- *       401:
- *         description: Unauthorized
+ *       201:
+ *         description: Testimonial created (no auth required)
  */
-router.post('/', isAuthenticated, allowRoles('admin', 'systemmanager'), validateTestimonialCreate, createTestimonial);
+router.post('/', validateTestimonialCreate, createTestimonial);
 
 /**
  * @swagger
