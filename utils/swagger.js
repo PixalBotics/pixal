@@ -1,5 +1,25 @@
 const swaggerJsdoc = require('swagger-jsdoc');
 
+// Get production URL from environment (Render provides RENDER_EXTERNAL_URL)
+const productionUrl = process.env.RENDER_EXTERNAL_URL || process.env.PRODUCTION_URL || 'https://api.pixal.com';
+const port = process.env.PORT || 3001;
+
+// Build servers array dynamically
+const servers = [
+  {
+    url: `http://localhost:${port}`,
+    description: 'Development server'
+  }
+];
+
+// Add production server only if we're in production or have production URL
+if (process.env.NODE_ENV === 'production' || productionUrl !== 'https://api.pixal.com') {
+  servers.push({
+    url: productionUrl,
+    description: 'Production server'
+  });
+}
+
 const options = {
   definition: {
     openapi: '3.0.0',
@@ -39,16 +59,7 @@ const options = {
         url: 'https://opensource.org/licenses/MIT'
       }
     },
-    servers: [
-      {
-        url: 'http://localhost:3000',
-        description: 'Development server'
-      },
-      {
-        url: 'https://api.pixal.com',
-        description: 'Production server'
-      }
-    ],
+    servers: servers,
     components: {
       securitySchemes: {
         bearerAuth: {
