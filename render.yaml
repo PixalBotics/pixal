@@ -13,6 +13,19 @@ services:
         value: https://pixalbotics.com,https://www.pixalbotics.com
       - key: MONGODB_URI
         sync: false
+      # SendGrid (recommended for Render)
+      - key: EMAIL_SERVICE
+        value: sendgrid
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: SENDGRID_FROM
+        sync: false
+      - key: EMAIL_FROM_NAME
+        value: Pixal Botics
+      # Admin inbox for contact form notifications (optional; defaults to SENDGRID_FROM)
+      - key: ADMIN_EMAIL
+        sync: false
+      # cPanel SMTP (optional; use when not using SendGrid)
       - key: EMAIL_USER
         sync: false
       - key: EMAIL_PASSWORD

@@ -22,6 +22,7 @@
   },
   "homepage": "https://github.com/A-hasan-code/pixal#readme",
   "dependencies": {
+    "@sendgrid/mail": "^8.1.6",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.2",
     "body-parser": "^2.2.0",

@@ -31,10 +31,11 @@ exports.createContact = catchAsyncError(async (req, res, next) => {
     // Don't fail the request if email fails
   }
   
-  // Send notification to admin (info@pixalbotics.com)
+  // Send notification to admin (SendGrid: use ADMIN_EMAIL or SENDGRID_FROM; cPanel: EMAIL_USER)
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER || process.env.SENDGRID_FROM || 'info@pixalbotics.com';
   try {
     await sendEmail({
-      to: process.env.EMAIL_USER || 'info@pixalbotics.com',
+      to: adminEmail,
       subject: `New Contact Form Submission from ${name}`,
       html: contactNotificationEmail(contact),
     });
