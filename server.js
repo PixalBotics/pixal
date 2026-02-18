@@ -18,17 +18,18 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 // Middleware setup
-app.use(cors({ 
-    origin: [
-        'https://pixalbotics.com',
-        'https://www.pixalbotics.com',
-        'http://pixalbotics.com',
-        'http://www.pixalbotics.com',
-        'http://localhost:3000',
-        'http://127.0.0.1:3000'
-    ],
-    credentials: true 
-}));
+// app.use(cors({ 
+//     origin: [
+//         'https://pixalbotics.com',
+//         'https://www.pixalbotics.com',
+//         'http://pixalbotics.com',
+//         'http://www.pixalbotics.com',
+//         'http://localhost:3000',
+//         'http://127.0.0.1:3000'
+//     ],
+//     credentials: true 
+// }));
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser());
