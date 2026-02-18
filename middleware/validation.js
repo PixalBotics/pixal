@@ -4,14 +4,17 @@ const { body, param, query, validationResult } = require('express-validator');
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      message: 'Validation failed',
-      errors: errors.array().map(err => ({
-        field: err.path || err.param,
-        message: err.msg,
-      })),
-    });
+    // Ensure response is sent
+    if (!res.headersSent) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array().map(err => ({
+          field: err.path || err.param || err.location,
+          message: err.msg,
+        })),
+      });
+    }
   }
   next();
 };

@@ -4,7 +4,7 @@ const router = express.Router();
 const { createTeamMember, getTeam, getTeamMember, updateTeamMember, deleteTeamMember } = require('../controllers/teamController');
 const { isAuthenticated } = require('../middleware/auth');
 const allowRoles = require('../middleware/roleCheck');
-const { imageUpload } = require('../utils/upload');
+const { imageUpload, handleMulterError } = require('../utils/upload');
 const { validateTeamCreate, validateMongoId, validatePagination } = require('../middleware/validation');
 
 /**
@@ -56,7 +56,7 @@ const { validateTeamCreate, validateMongoId, validatePagination } = require('../
  *       401:
  *         description: Unauthorized
  */
-router.post('/', isAuthenticated, allowRoles('admin', 'systemmanager'), imageUpload.single('photo'), validateTeamCreate, createTeamMember);
+router.post('/', isAuthenticated, allowRoles('admin', 'systemmanager'), imageUpload.single('photo'), handleMulterError, createTeamMember);
 
 /**
  * @swagger
@@ -166,7 +166,7 @@ router.get('/:id', validateMongoId, getTeamMember);
  *       403:
  *         description: Forbidden
  */
-router.put('/:id', isAuthenticated, allowRoles('admin', 'systemmanager'), imageUpload.single('photo'), validateMongoId, validateTeamCreate, updateTeamMember);
+router.put('/:id', isAuthenticated, allowRoles('admin', 'systemmanager'), imageUpload.single('photo'), handleMulterError, validateMongoId, updateTeamMember);
 
 /**
  * @swagger

@@ -4,7 +4,7 @@ const router = express.Router();
 const { createBlog, getBlogs, getBlog, updateBlog, deleteBlog } = require('../controllers/blogController');
 const { isAuthenticated } = require('../middleware/auth');
 const allowRoles = require('../middleware/roleCheck');
-const { pdfUpload } = require('../utils/upload');
+const { pdfUpload, handleMulterError } = require('../utils/upload');
 const { validateBlogCreate, validateMongoId, validatePagination } = require('../middleware/validation');
 
 /**
@@ -52,7 +52,7 @@ const { validateBlogCreate, validateMongoId, validatePagination } = require('../
  *       401:
  *         description: Unauthorized
  */
-router.post('/', isAuthenticated, allowRoles('admin', 'systemmanager'), pdfUpload.single('pdf'), validateBlogCreate, createBlog);
+router.post('/', isAuthenticated, allowRoles('admin', 'systemmanager'), pdfUpload.single('pdf'), handleMulterError, createBlog);
 
 /**
  * @swagger
@@ -186,7 +186,7 @@ router.get('/:id', validateMongoId, getBlog);
  *       403:
  *         description: Forbidden
  */
-router.put('/:id', isAuthenticated, allowRoles('admin', 'systemmanager'), pdfUpload.single('pdf'), validateMongoId, validateBlogCreate, updateBlog);
+router.put('/:id', isAuthenticated, allowRoles('admin', 'systemmanager'), pdfUpload.single('pdf'), handleMulterError, validateMongoId, updateBlog);
 
 /**
  * @swagger

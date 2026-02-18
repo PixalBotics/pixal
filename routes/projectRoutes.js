@@ -4,7 +4,7 @@ const router = express.Router();
 const { createProject, getProjects, getProject, updateProject, deleteProject } = require('../controllers/projectController');
 const { isAuthenticated } = require('../middleware/auth');
 const allowRoles = require('../middleware/roleCheck');
-const { imageUpload } = require('../utils/upload');
+const { imageUpload, handleMulterError } = require('../utils/upload');
 const { validateProjectCreate, validateMongoId, validatePagination } = require('../middleware/validation');
 
 /**
@@ -52,7 +52,7 @@ const { validateProjectCreate, validateMongoId, validatePagination } = require('
  *       401:
  *         description: Unauthorized
  */
-router.post('/', isAuthenticated, allowRoles('admin', 'systemmanager'), imageUpload.single('image'), validateProjectCreate, createProject);
+router.post('/', isAuthenticated, allowRoles('admin', 'systemmanager'), imageUpload.single('image'), handleMulterError, createProject);
 
 /**
  * @swagger
@@ -159,7 +159,7 @@ router.get('/:id', validateMongoId, getProject);
  *       403:
  *         description: Forbidden
  */
-router.put('/:id', isAuthenticated, allowRoles('admin', 'systemmanager'), imageUpload.single('image'), validateMongoId, validateProjectCreate, updateProject);
+router.put('/:id', isAuthenticated, allowRoles('admin', 'systemmanager'), imageUpload.single('image'), handleMulterError, validateMongoId, updateProject);
 
 /**
  * @swagger

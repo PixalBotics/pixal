@@ -5,12 +5,22 @@ const { paginate } = require('../utils/pagination');
 
 
 exports.createTestimonial = catchAsyncError(async (req, res, next) => {
-  const t = await Testimonial.create(req.body);
-  res.status(201).json({
-    success: true,
-    message: 'Testimonial created successfully',
-    data: { testimonial: t },
-  });
+  try {
+    const testimonial = await Testimonial.create(req.body);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Testimonial created successfully',
+      data: { testimonial },
+    });
+  } catch (error) {
+    // If it's a validation error, pass it to error handler
+    if (error.name === 'ValidationError') {
+      return next(error);
+    }
+    // For other errors, also pass to error handler
+    return next(error);
+  }
 });
 
 exports.getTestimonials = catchAsyncError(async (req, res, next) => {

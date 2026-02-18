@@ -7,7 +7,9 @@ const imageFilter = (req, file, cb) => {
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.'), false);
+    const error = new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.');
+    error.code = 'INVALID_FILE_TYPE';
+    cb(error, false);
   }
 };
 
@@ -16,7 +18,9 @@ const pdfFilter = (req, file, cb) => {
   if (file.mimetype === 'application/pdf') {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Only PDF files are allowed.'), false);
+    const error = new Error('Invalid file type. Only PDF files are allowed.');
+    error.code = 'INVALID_FILE_TYPE';
+    cb(error, false);
   }
 };
 
@@ -64,4 +68,40 @@ const pdfUpload = multer({
   }
 });
 
-module.exports = { imageUpload, pdfUpload };
+// Multer error handler middleware
+const handleMulterError = (err, req, res, next) => {
+  if (err) {
+    if (err.name === 'MulterError') {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({
+          success: false,
+          message: 'File size is too large',
+          error: 'LIMIT_FILE_SIZE'
+        });
+      } else if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+        return res.status(400).json({
+          success: false,
+          message: 'Unexpected field in file upload',
+          error: 'LIMIT_UNEXPECTED_FILE'
+        });
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: `File upload error: ${err.message}`,
+          error: 'MulterError'
+        });
+      }
+    } else if (err.code === 'INVALID_FILE_TYPE' || (err.message && err.message.includes('Invalid file type'))) {
+      return res.status(400).json({
+        success: false,
+        message: err.message || 'Invalid file type',
+        error: 'INVALID_FILE_TYPE'
+      });
+    }
+    // Pass other errors to next error handler
+    return next(err);
+  }
+  next();
+};
+
+module.exports = { imageUpload, pdfUpload, handleMulterError };

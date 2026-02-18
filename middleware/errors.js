@@ -45,6 +45,11 @@ module.exports = (err, req, res, next) => {
         }
     }
 
+    // File filter errors (from multer fileFilter callback)
+    if (err.code === 'INVALID_FILE_TYPE' || err.message && err.message.includes('Invalid file type')) {
+        err = new ErrorHandler(err.message || "Invalid file type", 400);
+    }
+
     // MySQL Error Handling (keeping for backward compatibility)
     if (err.code && typeof err.code === 'string') {
         switch (err.code) {

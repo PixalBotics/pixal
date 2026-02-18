@@ -5,18 +5,46 @@ const { paginate } = require('../utils/pagination');
 
 
 exports.createProject = catchAsyncError(async (req, res, next) => {
-  // If a file was uploaded via Multer, set imageUrl automatically
-  if (req.file) {
-    // build full URL
-    const url = `${req.protocol}://${req.get('host')}/uploads/images/${req.file.filename}`;
-    req.body.imageUrl = url;
+  // Direct validation check (works with multipart/form-data)
+  const errors = [];
+  if (!req.body.name || !req.body.name.trim()) {
+    errors.push({ field: 'name', message: 'Project name is required' });
+  } else if (req.body.name.trim().length < 3) {
+    errors.push({ field: 'name', message: 'Project name must be at least 3 characters' });
+  } else if (req.body.name.trim().length > 200) {
+    errors.push({ field: 'name', message: 'Project name must not exceed 200 characters' });
   }
-  const project = await Project.create(req.body);
-  res.status(201).json({
-    success: true,
-    message: 'Project created successfully',
-    data: { project },
-  });
+
+  if (req.body.description && req.body.description.length > 5000) {
+    errors.push({ field: 'description', message: 'Description must not exceed 5000 characters' });
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Validation failed',
+      errors
+    });
+  }
+
+  try {
+    // If a file was uploaded via Multer, set imageUrl automatically
+    if (req.file) {
+      // build full URL
+      const url = `${req.protocol}://${req.get('host')}/uploads/images/${req.file.filename}`;
+      req.body.imageUrl = url;
+    }
+    
+    const project = await Project.create(req.body);
+    
+    return res.status(201).json({
+      success: true,
+      message: 'Project created successfully',
+      data: { project },
+    });
+  } catch (error) {
+    return next(error);
+  }
 });
 
 
