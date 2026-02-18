@@ -2,7 +2,6 @@
 require('dotenv').config();
 
 const express = require('express');
-const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 
@@ -14,26 +13,36 @@ const errorMiddleware = require('./middleware/errors');
 
 // Initialize Express app
 const app = express();
-// Backend runs on port 3001 (Next.js will use 3000)
 const port = process.env.PORT || 3001;
 
+// CORS Configuration - Production Ready
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
+  : ['https://pixalbotics.com', 'https://www.pixalbotics.com'];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range']
+};
+
+app.use(cors(corsOptions));
+
 // Middleware setup
-// app.use(cors({ 
-//     origin: [
-//         'https://pixalbotics.com',
-//         'https://www.pixalbotics.com',
-//         'http://pixalbotics.com',
-//         'http://www.pixalbotics.com',
-//         'http://localhost:3000',
-//         'http://127.0.0.1:3000'
-//     ],
-//     credentials: true 
-// }));
-app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser());
-app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 
 // Serve uploads as static
 app.use('/uploads', express.static('uploads'));
@@ -55,6 +64,15 @@ app.get('/health', (req, res) => {
     success: true,
     status: 'healthy',
     uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Keep-alive endpoint for Render (prevents server from sleeping)
+app.get('/ping', (req, res) => {
+  res.json({
+    success: true,
+    message: 'pong',
     timestamp: new Date().toISOString()
   });
 });
@@ -94,45 +112,135 @@ app.use((req, res, next) => {
 // Global error handler - must be the last middleware
 app.use(errorMiddleware);
 
+// Keep-alive interval for Render (prevents server from sleeping)
+let keepAliveInterval;
+const startKeepAlive = () => {
+  // For production on Render, ping the /ping endpoint to keep server awake
+  if (process.env.NODE_ENV === 'production') {
+    const serviceUrl = process.env.RENDER_EXTERNAL_URL || process.env.KEEP_ALIVE_URL;
+    const interval = parseInt(process.env.KEEP_ALIVE_INTERVAL) || 300000; // 5 minutes default
+    
+    if (serviceUrl) {
+      const keepAliveUrl = `${serviceUrl}/ping`;
+      
+      keepAliveInterval = setInterval(() => {
+        try {
+          const https = require('https');
+          const http = require('http');
+          const client = keepAliveUrl.startsWith('https') ? https : http;
+          
+          client.get(keepAliveUrl, (res) => {
+            res.on('data', () => {}); // Consume response
+            res.on('end', () => {
+              if (res.statusCode === 200) {
+                console.log(`✅ Keep-alive ping successful`);
+              }
+            });
+          }).on('error', (err) => {
+            // Silent fail for connection errors
+            if (err.code !== 'ECONNREFUSED' && err.code !== 'ENOTFOUND') {
+              console.log(`⚠️ Keep-alive ping failed: ${err.message}`);
+            }
+          });
+        } catch (error) {
+          // Silent fail
+        }
+      }, interval);
+      
+      console.log(`🔄 Keep-alive enabled: pinging ${keepAliveUrl} every ${interval / 1000}s`);
+    } else {
+      // Fallback: Use internal request to /ping endpoint
+      keepAliveInterval = setInterval(() => {
+        // Internal ping to keep server active
+        const http = require('http');
+        const options = {
+          hostname: 'localhost',
+          port: port,
+          path: '/ping',
+          method: 'GET',
+          timeout: 5000
+        };
+        
+        const req = http.request(options, (res) => {
+          res.on('data', () => {});
+          res.on('end', () => {
+            if (res.statusCode === 200) {
+              console.log(`✅ Internal keep-alive ping successful`);
+            }
+          });
+        });
+        
+        req.on('error', () => {
+          // Silent fail
+        });
+        
+        req.on('timeout', () => {
+          req.destroy();
+        });
+        
+        req.end();
+      }, interval);
+      
+      console.log(`🔄 Internal keep-alive enabled: pinging every ${interval / 1000}s`);
+    }
+  }
+};
+
 // Start function: connect to DB then start Express
 async function start() {
   try {
     await connectDB();
     
-    // Get local network IP
-    const os = require('os');
-    const networkInterfaces = os.networkInterfaces();
+    // Get local network IP (only for development)
     let localIP = 'localhost';
-    
-    Object.keys(networkInterfaces).forEach(interfaceName => {
-      const interfaces = networkInterfaces[interfaceName];
-      interfaces.forEach(iface => {
-        if (iface.family === 'IPv4' && !iface.internal) {
-          localIP = iface.address;
-        }
+    if (process.env.NODE_ENV !== 'production') {
+      const os = require('os');
+      const networkInterfaces = os.networkInterfaces();
+      
+      Object.keys(networkInterfaces).forEach(interfaceName => {
+        const interfaces = networkInterfaces[interfaceName];
+        interfaces.forEach(iface => {
+          if (iface.family === 'IPv4' && !iface.internal) {
+            localIP = iface.address;
+          }
+        });
       });
-    });
+    }
     
-    // Listen on all network interfaces (0.0.0.0)
+    // Listen on all network interfaces
     app.listen(port, '0.0.0.0', () => {
+      const env = process.env.NODE_ENV || 'development';
       console.log(`
 ╔═══════════════════════════════════════════════════════╗
 ║   🚀 Pixal API Server Started                        ║
 ╠═══════════════════════════════════════════════════════╣
 ║   Port: ${port}                                      ║
-║   Environment: ${process.env.NODE_ENV || 'development'}                      ║
+║   Environment: ${env}                                ║
+║   CORS Origins: ${allowedOrigins.join(', ')}         ║
+      `);
+      
+      if (env !== 'production') {
+        console.log(`
 ║                                                       ║
 ║   📱 Local Access:                                    ║
 ║   http://localhost:${port}                           ║
 ║                                                       ║
-║   🌐 Network Access (from other devices):            ║
-║   http://${localIP}:${port}                    ║
+║   🌐 Network Access:                                 ║
+║   http://${localIP}:${port}                          ║
 ║                                                       ║
 ║   📚 API Documentation:                               ║
 ║   http://localhost:${port}/api-docs                  ║
-║   http://${localIP}:${port}/api-docs           ║
+        `);
+      }
+      
+      console.log(`
+║   🏥 Health Check: /health                            ║
+║   🔄 Keep-Alive: /ping                                ║
 ╚═══════════════════════════════════════════════════════╝
       `);
+      
+      // Start keep-alive for production
+      startKeepAlive();
     });
   } catch (err) {
     console.error('❌ Failed to start server:', err.message);
@@ -143,13 +251,28 @@ async function start() {
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
   console.error('❌ Unhandled Promise Rejection:', err);
+  if (keepAliveInterval) clearInterval(keepAliveInterval);
   process.exit(1);
 });
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
   console.error('❌ Uncaught Exception:', err);
+  if (keepAliveInterval) clearInterval(keepAliveInterval);
   process.exit(1);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('⚠️ SIGTERM received, shutting down gracefully...');
+  if (keepAliveInterval) clearInterval(keepAliveInterval);
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('⚠️ SIGINT received, shutting down gracefully...');
+  if (keepAliveInterval) clearInterval(keepAliveInterval);
+  process.exit(0);
 });
 
 start();

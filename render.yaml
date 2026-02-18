@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: pixal-api
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: ALLOWED_ORIGINS
+        value: https://pixalbotics.com,https://www.pixalbotics.com
+      - key: MONGODB_URI
+        sync: false
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASSWORD
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: 465
+      - key: SMTP_SECURE
+        value: true
+      - key: JWT_SECRET
+        sync: false
+      - key: KEEP_ALIVE_URL
+        fromService:
+          type: web
+          name: pixal-api
+          property: url
+        value: ${SERVICE_URL}/ping
+      - key: KEEP_ALIVE_INTERVAL
+        value: 300000
