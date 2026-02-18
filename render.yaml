@@ -38,6 +38,9 @@ services:
         value: true
       - key: JWT_SECRET
         sync: false
+      # Cloudinary – images & PDFs (set in Render env; format: cloudinary://KEY:SECRET@CLOUD_NAME)
+      - key: CLOUDINARY_URL
+        sync: false
       - key: KEEP_ALIVE_URL
         fromService:
           type: web

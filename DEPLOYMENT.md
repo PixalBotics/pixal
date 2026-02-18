@@ -29,6 +29,13 @@ JWT_SECRET=your_strong_jwt_secret_key_here
 # Keep-Alive Configuration (for Render - prevents server from sleeping)
 RENDER_EXTERNAL_URL=https://your-app.onrender.com
 KEEP_ALIVE_INTERVAL=300000
+
+# Persistent uploads on Render (optional – use Cloudinary instead, see below)
+# UPLOADS_BASE_PATH=/data
+
+# Cloudinary – images & PDFs (recommended for Render)
+# Format: cloudinary://API_KEY:API_SECRET@CLOUD_NAME
+# CLOUDINARY_URL=cloudinary://xxx:xxx@xxx
 ```
 
 ## Render.com Deployment
@@ -94,6 +101,7 @@ The server includes automatic keep-alive functionality to prevent Render from pu
 - [ ] Email SMTP settings tested
 - [ ] JWT secret is strong and secure
 - [ ] Keep-alive URL configured (for Render)
+- [ ] Persistent Disk added on Render + `UPLOADS_BASE_PATH=/data` set (so images survive redeploys)
 - [ ] Server tested and running
 - [ ] API documentation accessible at `/api-docs`
 

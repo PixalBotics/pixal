@@ -1,5 +1,22 @@
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+
+function getUploadsRoot() {
+  if (process.env.UPLOADS_BASE_PATH) {
+    return path.join(process.env.UPLOADS_BASE_PATH, 'uploads');
+  }
+  return path.join(__dirname, '..', 'uploads');
+}
+
+function ensureDir(dir) {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+const useCloudinary = !!process.env.CLOUDINARY_URL;
+const memoryStorage = multer.memoryStorage();
 
 // Image file filter
 const imageFilter = (req, file, cb) => {
@@ -24,10 +41,11 @@ const pdfFilter = (req, file, cb) => {
   }
 };
 
-// Image storage configuration
-const imageStorage = multer.diskStorage({
+const imageStorage = useCloudinary ? memoryStorage : multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, '../uploads/images'));
+    const dir = path.join(getUploadsRoot(), 'images');
+    ensureDir(dir);
+    cb(null, dir);
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -37,10 +55,11 @@ const imageStorage = multer.diskStorage({
   }
 });
 
-// PDF storage configuration
-const pdfStorage = multer.diskStorage({
+const pdfStorage = useCloudinary ? memoryStorage : multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, '../uploads/pdfs'));
+    const dir = path.join(getUploadsRoot(), 'pdfs');
+    ensureDir(dir);
+    cb(null, dir);
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -68,15 +87,20 @@ const pdfUpload = multer({
   }
 });
 
-// Blog upload: both image and PDF in one request (optional)
-const blogStorage = multer.diskStorage({
+const blogStorage = useCloudinary ? memoryStorage : multer.diskStorage({
   destination: function (req, file, cb) {
+    const root = getUploadsRoot();
     if (file.fieldname === 'image') {
-      cb(null, path.join(__dirname, '../uploads/images'));
+      const dir = path.join(root, 'images');
+      ensureDir(dir);
+      cb(null, dir);
     } else if (file.fieldname === 'pdf') {
-      cb(null, path.join(__dirname, '../uploads/pdfs'));
+      const dir = path.join(root, 'pdfs');
+      ensureDir(dir);
+      cb(null, dir);
     } else {
-      cb(null, path.join(__dirname, '../uploads'));
+      ensureDir(root);
+      cb(null, root);
     }
   },
   filename: function (req, file, cb) {
@@ -140,4 +164,4 @@ const handleMulterError = (err, req, res, next) => {
   next();
 };
 
-module.exports = { imageUpload, pdfUpload, blogUpload, handleMulterError };
+module.exports = { imageUpload, pdfUpload, blogUpload, handleMulterError, getUploadsRoot };

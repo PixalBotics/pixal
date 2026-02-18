@@ -2,6 +2,7 @@ const Project = require('../models/Project');
 const catchAsyncError = require('../middleware/catchAsyncError');
 const ErrorHandler = require('../utils/ErrorHandler');
 const { paginate } = require('../utils/pagination');
+const { isConfigured: cloudinaryConfigured, uploadImage: uploadToCloudinary } = require('../utils/cloudinary');
 
 
 exports.createProject = catchAsyncError(async (req, res, next) => {
@@ -28,13 +29,13 @@ exports.createProject = catchAsyncError(async (req, res, next) => {
   }
 
   try {
-    // If a file was uploaded via Multer, set imageUrl automatically
     if (req.file) {
-      // build full URL
-      const url = `${req.protocol}://${req.get('host')}/uploads/images/${req.file.filename}`;
-      req.body.imageUrl = url;
+      if (cloudinaryConfigured()) {
+        req.body.imageUrl = await uploadToCloudinary(req.file.buffer, req.file.mimetype, 'pixal/projects');
+      } else {
+        req.body.imageUrl = `${req.protocol}://${req.get('host')}/uploads/images/${req.file.filename}`;
+      }
     }
-    
     const project = await Project.create(req.body);
     
     return res.status(201).json({
@@ -76,10 +77,12 @@ exports.updateProject = catchAsyncError(async (req, res, next) => {
   let project = await Project.findById(req.params.id);
   if (!project) return next(new ErrorHandler('Project not found', 404));
 
-  // If new file uploaded, update imageUrl
   if (req.file) {
-    const url = `${req.protocol}://${req.get('host')}/uploads/images/${req.file.filename}`;
-    req.body.imageUrl = url;
+    if (cloudinaryConfigured()) {
+      req.body.imageUrl = await uploadToCloudinary(req.file.buffer, req.file.mimetype, 'pixal/projects');
+    } else {
+      req.body.imageUrl = `${req.protocol}://${req.get('host')}/uploads/images/${req.file.filename}`;
+    }
   }
 
   project = await Project.findByIdAndUpdate(req.params.id, req.body, {

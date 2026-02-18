@@ -2,6 +2,7 @@ const Blog = require('../models/Blog');
 const catchAsyncError = require('../middleware/catchAsyncError');
 const ErrorHandler = require('../utils/ErrorHandler');
 const { paginate } = require('../utils/pagination');
+const { isConfigured: cloudinaryConfigured, uploadImage: uploadImageToCloudinary, uploadRaw: uploadRawToCloudinary } = require('../utils/cloudinary');
 
 
 exports.createBlog = catchAsyncError(async (req, res, next) => {
@@ -31,13 +32,22 @@ exports.createBlog = catchAsyncError(async (req, res, next) => {
     const baseUrl = `${req.protocol}://${req.get('host')}`;
     if (req.files) {
       if (req.files.image && req.files.image[0]) {
-        req.body.imageUrl = `${baseUrl}/uploads/images/${req.files.image[0].filename}`;
+        const file = req.files.image[0];
+        if (cloudinaryConfigured() && file.buffer) {
+          req.body.imageUrl = await uploadImageToCloudinary(file.buffer, file.mimetype, 'pixal/blog');
+        } else {
+          req.body.imageUrl = `${baseUrl}/uploads/images/${file.filename}`;
+        }
       }
       if (req.files.pdf && req.files.pdf[0]) {
-        req.body.pdfUrl = `${baseUrl}/uploads/pdfs/${req.files.pdf[0].filename}`;
+        const file = req.files.pdf[0];
+        if (cloudinaryConfigured() && file.buffer) {
+          req.body.pdfUrl = await uploadRawToCloudinary(file.buffer, 'pixal/blog/pdfs');
+        } else {
+          req.body.pdfUrl = `${baseUrl}/uploads/pdfs/${file.filename}`;
+        }
       }
     }
-    
     const blog = await Blog.create(req.body);
     
     return res.status(201).json({
@@ -82,10 +92,20 @@ exports.updateBlog = catchAsyncError(async (req, res, next) => {
   const baseUrl = `${req.protocol}://${req.get('host')}`;
   if (req.files) {
     if (req.files.image && req.files.image[0]) {
-      req.body.imageUrl = `${baseUrl}/uploads/images/${req.files.image[0].filename}`;
+      const file = req.files.image[0];
+      if (cloudinaryConfigured() && file.buffer) {
+        req.body.imageUrl = await uploadImageToCloudinary(file.buffer, file.mimetype, 'pixal/blog');
+      } else {
+        req.body.imageUrl = `${baseUrl}/uploads/images/${file.filename}`;
+      }
     }
     if (req.files.pdf && req.files.pdf[0]) {
-      req.body.pdfUrl = `${baseUrl}/uploads/pdfs/${req.files.pdf[0].filename}`;
+      const file = req.files.pdf[0];
+      if (cloudinaryConfigured() && file.buffer) {
+        req.body.pdfUrl = await uploadRawToCloudinary(file.buffer, 'pixal/blog/pdfs');
+      } else {
+        req.body.pdfUrl = `${baseUrl}/uploads/pdfs/${file.filename}`;
+      }
     }
   }
 

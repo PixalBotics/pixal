@@ -2,6 +2,7 @@ const Team = require('../models/Team');
 const catchAsyncError = require('../middleware/catchAsyncError');
 const ErrorHandler = require('../utils/ErrorHandler');
 const { paginate } = require('../utils/pagination');
+const { isConfigured: cloudinaryConfigured, uploadImage: uploadToCloudinary } = require('../utils/cloudinary');
 
 
 exports.createTeamMember = catchAsyncError(async (req, res, next) => {
@@ -33,10 +34,12 @@ exports.createTeamMember = catchAsyncError(async (req, res, next) => {
 
   try {
     if (req.file) {
-      const url = `${req.protocol}://${req.get('host')}/uploads/images/${req.file.filename}`;
-      req.body.photoUrl = url;
+      if (cloudinaryConfigured()) {
+        req.body.photoUrl = await uploadToCloudinary(req.file.buffer, req.file.mimetype, 'pixal/team');
+      } else {
+        req.body.photoUrl = `${req.protocol}://${req.get('host')}/uploads/images/${req.file.filename}`;
+      }
     }
-    
     const member = await Team.create(req.body);
     
     return res.status(201).json({
@@ -77,10 +80,12 @@ exports.updateTeamMember = catchAsyncError(async (req, res, next) => {
   let member = await Team.findById(req.params.id);
   if (!member) return next(new ErrorHandler('Team member not found', 404));
 
-  // If new file uploaded, update photoUrl
   if (req.file) {
-    const url = `${req.protocol}://${req.get('host')}/uploads/images/${req.file.filename}`;
-    req.body.photoUrl = url;
+    if (cloudinaryConfigured()) {
+      req.body.photoUrl = await uploadToCloudinary(req.file.buffer, req.file.mimetype, 'pixal/team');
+    } else {
+      req.body.photoUrl = `${req.protocol}://${req.get('host')}/uploads/images/${req.file.filename}`;
+    }
   }
 
   member = await Team.findByIdAndUpdate(req.params.id, req.body, {
