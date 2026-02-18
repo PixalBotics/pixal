@@ -110,13 +110,15 @@ module.exports = (err, req, res, next) => {
         });
     }
 
-    // Send error response
-    res.status(err.statusCode).json({
-        success: false,
-        message: err.message,
-        ...(process.env.NODE_ENV !== 'production' && { 
-            stack: err.stack,
-            error: err 
-        })
-    });
+    // Send error response - ensure response is sent
+    if (!res.headersSent) {
+        res.status(err.statusCode).json({
+            success: false,
+            message: err.message,
+            ...(process.env.NODE_ENV !== 'production' && { 
+                stack: err.stack,
+                error: err 
+            })
+        });
+    }
 };

@@ -17,7 +17,7 @@ exports.getTestimonials = catchAsyncError(async (req, res, next) => {
   // Use pagination utility with search on 'clientName' and 'reviewText' fields
   const result = await paginate(Testimonial, req, ['clientName', 'reviewText']);
   
-  res.json({
+  res.status(200).json({
     success: true,
     message: 'Testimonials fetched successfully',
     data: { testimonials: result.data },
@@ -30,7 +30,7 @@ exports.getTestimonial = catchAsyncError(async (req, res, next) => {
   const testimonial = await Testimonial.findById(req.params.id);
   if (!testimonial) return next(new ErrorHandler('Testimonial not found', 404));
   
-  res.json({
+  res.status(200).json({
     success: true,
     message: 'Testimonial fetched successfully',
     data: { testimonial },
@@ -47,7 +47,7 @@ exports.updateTestimonial = catchAsyncError(async (req, res, next) => {
     runValidators: true,
   });
 
-  res.json({
+  res.status(200).json({
     success: true,
     message: 'Testimonial updated successfully',
     data: { testimonial },
@@ -61,7 +61,7 @@ exports.deleteTestimonial = catchAsyncError(async (req, res, next) => {
 
   await Testimonial.findByIdAndDelete(req.params.id);
 
-  res.json({
+  res.status(200).json({
     success: true,
     message: 'Testimonial deleted successfully',
     data: null,

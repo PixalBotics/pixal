@@ -54,7 +54,7 @@ exports.createContact = catchAsyncError(async (req, res, next) => {
 exports.getContacts = catchAsyncError(async (req, res, next) => {
   const result = await paginate(Contact, req, ['name', 'email', 'subject', 'message']);
   
-  res.json({
+  res.status(200).json({
     success: true,
     message: 'Contacts fetched successfully',
     data: { contacts: result.data },
@@ -67,7 +67,7 @@ exports.getContact = catchAsyncError(async (req, res, next) => {
   const contact = await Contact.findById(req.params.id);
   if (!contact) return next(new ErrorHandler('Contact not found', 404));
   
-  res.json({
+  res.status(200).json({
     success: true,
     message: 'Contact fetched successfully',
     data: { contact },
@@ -86,7 +86,7 @@ exports.updateContactStatus = catchAsyncError(async (req, res, next) => {
   
   if (!contact) return next(new ErrorHandler('Contact not found', 404));
   
-  res.json({
+  res.status(200).json({
     success: true,
     message: 'Contact status updated successfully',
     data: { contact },
@@ -100,7 +100,7 @@ exports.deleteContact = catchAsyncError(async (req, res, next) => {
   
   await Contact.findByIdAndDelete(req.params.id);
   
-  res.json({
+  res.status(200).json({
     success: true,
     message: 'Contact deleted successfully',
     data: null,

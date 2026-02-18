@@ -21,7 +21,7 @@ exports.getTeam = catchAsyncError(async (req, res, next) => {
   // Use pagination utility with search on 'name', 'role', and 'bio' fields
   const result = await paginate(Team, req, ['name', 'role', 'bio']);
   
-  res.json({
+  res.status(200).json({
     success: true,
     message: 'Team members fetched successfully',
     data: { members: result.data },
@@ -33,7 +33,7 @@ exports.getTeam = catchAsyncError(async (req, res, next) => {
 exports.getTeamMember = catchAsyncError(async (req, res, next) => {
   const member = await Team.findById(req.params.id);
   if (!member) return next(new ErrorHandler('Team member not found', 404));
-  res.json({
+  res.status(200).json({
     success: true,
     message: 'Team member fetched successfully',
     data: { member },
@@ -56,7 +56,7 @@ exports.updateTeamMember = catchAsyncError(async (req, res, next) => {
     runValidators: true,
   });
 
-  res.json({
+  res.status(200).json({
     success: true,
     message: 'Team member updated successfully',
     data: { member },
@@ -70,7 +70,7 @@ exports.deleteTeamMember = catchAsyncError(async (req, res, next) => {
 
   await Team.findByIdAndDelete(req.params.id);
 
-  res.json({
+  res.status(200).json({
     success: true,
     message: 'Team member deleted successfully',
     data: null,

@@ -24,7 +24,7 @@ exports.getProjects = catchAsyncError(async (req, res, next) => {
   // Use pagination utility with search on 'name' and 'description' fields
   const result = await paginate(Project, req, ['name', 'description']);
   
-  res.json({
+  res.status(200).json({
     success: true,
     message: 'Projects fetched successfully',
     data: { projects: result.data },
@@ -36,7 +36,7 @@ exports.getProjects = catchAsyncError(async (req, res, next) => {
 exports.getProject = catchAsyncError(async (req, res, next) => {
   const project = await Project.findById(req.params.id);
   if (!project) return next(new ErrorHandler('Project not found', 404));
-  res.json({
+  res.status(200).json({
     success: true,
     message: 'Project fetched successfully',
     data: { project },
@@ -59,7 +59,7 @@ exports.updateProject = catchAsyncError(async (req, res, next) => {
     runValidators: true,
   });
 
-  res.json({
+  res.status(200).json({
     success: true,
     message: 'Project updated successfully',
     data: { project },
@@ -73,7 +73,7 @@ exports.deleteProject = catchAsyncError(async (req, res, next) => {
 
   await Project.findByIdAndDelete(req.params.id);
 
-  res.json({
+  res.status(200).json({
     success: true,
     message: 'Project deleted successfully',
     data: null,

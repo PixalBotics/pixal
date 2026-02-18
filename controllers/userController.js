@@ -65,6 +65,13 @@ exports.loginUser = catchAsyncError(async (req, res, next) => {
   const userObj = user.toObject();
   delete userObj.password;
   // Generate JWT token
+  if (!process.env.JWT_SECRET) {
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Server configuration error. Please contact administrator.' 
+    });
+  }
+  
   const jwt = require('jsonwebtoken');
   const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '90d' });
   res.status(200).json({
@@ -88,7 +95,7 @@ exports.getUser = catchAsyncError(async (req, res, next) => {
   const user = await User.findById(userId).select('-password');
   if (!user) return next(new ErrorHandler('User not found', 404));
   
-  res.json({
+  res.status(200).json({
     success: true,
     message: 'User fetched successfully',
     data: { user },
@@ -100,7 +107,7 @@ exports.getUser = catchAsyncError(async (req, res, next) => {
 exports.getAllUsers = catchAsyncError(async (req, res, next) => {
   const users = await User.find().select('-password').sort('-createdAt');
   
-  res.json({
+  res.status(200).json({
     success: true,
     message: 'Users fetched successfully',
     count: users.length,
@@ -224,7 +231,7 @@ exports.updateUser = catchAsyncError(async (req, res, next) => {
     }
   }
   
-  res.json({
+  res.status(200).json({
     success: true,
     message: 'User updated successfully',
     data: { user },
@@ -269,7 +276,7 @@ exports.deleteUser = catchAsyncError(async (req, res, next) => {
     console.error('❌ Failed to send deletion email:', emailError.message);
   }
   
-  res.json({
+  res.status(200).json({
     success: true,
     message: 'User deleted successfully',
     data: null,
@@ -308,7 +315,7 @@ exports.forgotPassword = catchAsyncError(async (req, res, next) => {
       html: forgotPasswordEmail(user.name, resetToken),
     });
     
-    res.json({
+    res.status(200).json({
       success: true,
       message: 'Password reset email sent successfully. Please check your email.',
       data: {
@@ -380,7 +387,7 @@ exports.resetPassword = catchAsyncError(async (req, res, next) => {
     console.error('❌ Failed to send password reset success email:', emailError.message);
   }
   
-  res.json({
+  res.status(200).json({
     success: true,
     message: 'Password reset successful. You can now login with your new password.',
   });

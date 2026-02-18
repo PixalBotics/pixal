@@ -8,10 +8,15 @@
  */
 const paginate = async (model, req, searchFields = [], additionalFilters = {}) => {
   try {
-    // Extract query parameters
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const search = req.query.search || '';
+    // Validate model
+    if (!model || typeof model.find !== 'function') {
+      throw new Error('Invalid model provided to paginate function');
+    }
+
+    // Extract query parameters with validation
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
+    const search = (req.query.search || '').trim();
     const sortBy = req.query.sortBy || '-createdAt';
 
     // Calculate skip value
@@ -26,27 +31,34 @@ const paginate = async (model, req, searchFields = [], additionalFilters = {}) =
       }));
     }
 
-    // Execute queries
-    const [data, total] = await Promise.all([
-      model.find(searchQuery)
-        .sort(sortBy)
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      model.countDocuments(searchQuery)
-    ]);
+    // Execute queries with error handling
+    let data, total;
+    try {
+      [data, total] = await Promise.all([
+        model.find(searchQuery)
+          .sort(sortBy)
+          .skip(skip)
+          .limit(limit)
+          .lean()
+          .exec(),
+        model.countDocuments(searchQuery).exec()
+      ]);
+    } catch (dbError) {
+      console.error('Database query error in pagination:', dbError);
+      throw new Error('Failed to fetch data from database');
+    }
 
     // Calculate metadata
-    const totalPages = Math.ceil(total / limit);
+    const totalPages = Math.ceil(total / limit) || 0;
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
 
     return {
       success: true,
-      data,
+      data: data || [],
       pagination: {
-        total,
-        count: data.length,
+        total: total || 0,
+        count: data ? data.length : 0,
         page,
         limit,
         totalPages,
@@ -57,6 +69,7 @@ const paginate = async (model, req, searchFields = [], additionalFilters = {}) =
       },
     };
   } catch (error) {
+    console.error('Pagination error:', error);
     throw error;
   }
 };

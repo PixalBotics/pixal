@@ -22,7 +22,7 @@ exports.getBlogs = catchAsyncError(async (req, res, next) => {
   // Use pagination utility with search on 'name' and 'content' fields
   const result = await paginate(Blog, req, ['name', 'content']);
   
-  res.json({
+  res.status(200).json({
     success: true,
     message: 'Blogs fetched successfully',
     data: { blogs: result.data },
@@ -34,7 +34,7 @@ exports.getBlogs = catchAsyncError(async (req, res, next) => {
 exports.getBlog = catchAsyncError(async (req, res, next) => {
   const blog = await Blog.findById(req.params.id);
   if (!blog) return next(new ErrorHandler('Blog not found', 404));
-  res.json({
+  res.status(200).json({
     success: true,
     message: 'Blog fetched successfully',
     data: { blog },
@@ -57,7 +57,7 @@ exports.updateBlog = catchAsyncError(async (req, res, next) => {
     runValidators: true,
   });
 
-  res.json({
+  res.status(200).json({
     success: true,
     message: 'Blog updated successfully',
     data: { blog },
@@ -71,7 +71,7 @@ exports.deleteBlog = catchAsyncError(async (req, res, next) => {
 
   await Blog.findByIdAndDelete(req.params.id);
 
-  res.json({
+  res.status(200).json({
     success: true,
     message: 'Blog deleted successfully',
     data: null,
