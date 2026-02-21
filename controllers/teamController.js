@@ -2,7 +2,7 @@ const Team = require('../models/Team');
 const catchAsyncError = require('../middleware/catchAsyncError');
 const ErrorHandler = require('../utils/ErrorHandler');
 const { paginate } = require('../utils/pagination');
-const { isConfigured: cloudinaryConfigured, uploadImage: uploadToCloudinary } = require('../utils/cloudinary');
+const { isConfigured: cloudinaryConfigured, uploadImage: uploadToCloudinary, deleteByUrl: deleteFromCloudinary } = require('../utils/cloudinary');
 
 
 exports.createTeamMember = catchAsyncError(async (req, res, next) => {
@@ -81,6 +81,9 @@ exports.updateTeamMember = catchAsyncError(async (req, res, next) => {
   if (!member) return next(new ErrorHandler('Team member not found', 404));
 
   if (req.file) {
+    if (member.photoUrl && cloudinaryConfigured()) {
+      await deleteFromCloudinary(member.photoUrl).catch(() => {});
+    }
     if (cloudinaryConfigured()) {
       req.body.photoUrl = await uploadToCloudinary(req.file.buffer, req.file.mimetype, 'pixal/team');
     } else {
@@ -105,6 +108,9 @@ exports.deleteTeamMember = catchAsyncError(async (req, res, next) => {
   const member = await Team.findById(req.params.id);
   if (!member) return next(new ErrorHandler('Team member not found', 404));
 
+  if (member.photoUrl) {
+    await deleteFromCloudinary(member.photoUrl).catch(() => {});
+  }
   await Team.findByIdAndDelete(req.params.id);
 
   res.status(200).json({

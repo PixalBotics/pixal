@@ -2,7 +2,7 @@ const Blog = require('../models/Blog');
 const catchAsyncError = require('../middleware/catchAsyncError');
 const ErrorHandler = require('../utils/ErrorHandler');
 const { paginate } = require('../utils/pagination');
-const { isConfigured: cloudinaryConfigured, uploadImage: uploadImageToCloudinary, uploadRaw: uploadRawToCloudinary } = require('../utils/cloudinary');
+const { isConfigured: cloudinaryConfigured, uploadImage: uploadImageToCloudinary, uploadRaw: uploadRawToCloudinary, deleteByUrl: deleteFromCloudinary } = require('../utils/cloudinary');
 
 
 exports.createBlog = catchAsyncError(async (req, res, next) => {
@@ -16,8 +16,10 @@ exports.createBlog = catchAsyncError(async (req, res, next) => {
     errors.push({ field: 'name', message: 'Blog name must not exceed 200 characters' });
   }
 
-  if (req.body.content && req.body.content.length > 10000) {
-    errors.push({ field: 'content', message: 'Content must not exceed 10000 characters' });
+  // Content from Summernote is HTML; allow larger limit for rich content
+  const CONTENT_MAX_LENGTH = 500000;
+  if (req.body.content && req.body.content.length > CONTENT_MAX_LENGTH) {
+    errors.push({ field: 'content', message: `Content must not exceed ${CONTENT_MAX_LENGTH.toLocaleString()} characters` });
   }
 
   if (errors.length > 0) {
@@ -92,6 +94,7 @@ exports.updateBlog = catchAsyncError(async (req, res, next) => {
   const baseUrl = `${req.protocol}://${req.get('host')}`;
   if (req.files) {
     if (req.files.image && req.files.image[0]) {
+      if (blog.imageUrl) await deleteFromCloudinary(blog.imageUrl).catch(() => {});
       const file = req.files.image[0];
       if (cloudinaryConfigured() && file.buffer) {
         req.body.imageUrl = await uploadImageToCloudinary(file.buffer, file.mimetype, 'pixal/blog');
@@ -100,6 +103,7 @@ exports.updateBlog = catchAsyncError(async (req, res, next) => {
       }
     }
     if (req.files.pdf && req.files.pdf[0]) {
+      if (blog.pdfUrl) await deleteFromCloudinary(blog.pdfUrl).catch(() => {});
       const file = req.files.pdf[0];
       if (cloudinaryConfigured() && file.buffer) {
         req.body.pdfUrl = await uploadRawToCloudinary(file.buffer, 'pixal/blog/pdfs');
@@ -126,6 +130,15 @@ exports.deleteBlog = catchAsyncError(async (req, res, next) => {
   const blog = await Blog.findById(req.params.id);
   if (!blog) return next(new ErrorHandler('Blog not found', 404));
 
+  // Delete from Cloudinary first (while we still have URLs), then DB
+  const cloudinaryErr = (label) => (err) => {
+    console.error(`[Blog delete] Cloudinary ${label} failed:`, err?.message || err);
+  };
+  if (blog.imageUrl) await deleteFromCloudinary(blog.imageUrl).catch(cloudinaryErr('image'));
+  if (blog.pdfUrl) {
+    console.log('[Blog delete] Deleting PDF from Cloudinary:', blog.pdfUrl?.substring(0, 80) + '...');
+    await deleteFromCloudinary(blog.pdfUrl).catch(cloudinaryErr('pdf'));
+  }
   await Blog.findByIdAndDelete(req.params.id);
 
   res.status(200).json({

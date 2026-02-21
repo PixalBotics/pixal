@@ -11,6 +11,9 @@ const connectDB = require('./config/db');
 // Error handling middleware
 const errorMiddleware = require('./middleware/errors');
 
+// Uploads path helper (for static serving)
+const { getUploadsRoot } = require('./utils/upload');
+
 // Initialize Express app
 const app = express();
 const port = process.env.PORT || 3001;

@@ -2,7 +2,7 @@ const Project = require('../models/Project');
 const catchAsyncError = require('../middleware/catchAsyncError');
 const ErrorHandler = require('../utils/ErrorHandler');
 const { paginate } = require('../utils/pagination');
-const { isConfigured: cloudinaryConfigured, uploadImage: uploadToCloudinary } = require('../utils/cloudinary');
+const { isConfigured: cloudinaryConfigured, uploadImage: uploadToCloudinary, deleteByUrl: deleteFromCloudinary } = require('../utils/cloudinary');
 
 
 exports.createProject = catchAsyncError(async (req, res, next) => {
@@ -78,6 +78,9 @@ exports.updateProject = catchAsyncError(async (req, res, next) => {
   if (!project) return next(new ErrorHandler('Project not found', 404));
 
   if (req.file) {
+    if (project.imageUrl && cloudinaryConfigured()) {
+      await deleteFromCloudinary(project.imageUrl).catch(() => {});
+    }
     if (cloudinaryConfigured()) {
       req.body.imageUrl = await uploadToCloudinary(req.file.buffer, req.file.mimetype, 'pixal/projects');
     } else {
@@ -102,6 +105,9 @@ exports.deleteProject = catchAsyncError(async (req, res, next) => {
   const project = await Project.findById(req.params.id);
   if (!project) return next(new ErrorHandler('Project not found', 404));
 
+  if (project.imageUrl) {
+    await deleteFromCloudinary(project.imageUrl).catch(() => {});
+  }
   await Project.findByIdAndDelete(req.params.id);
 
   res.status(200).json({
