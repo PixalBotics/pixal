@@ -12,13 +12,9 @@ exports.createProject = catchAsyncError(async (req, res, next) => {
     errors.push({ field: 'name', message: 'Project name is required' });
   } else if (req.body.name.trim().length < 3) {
     errors.push({ field: 'name', message: 'Project name must be at least 3 characters' });
-  } else if (req.body.name.trim().length > 200) {
-    errors.push({ field: 'name', message: 'Project name must not exceed 200 characters' });
-  }
+  } 
 
-  if (req.body.description && req.body.description.length > 5000) {
-    errors.push({ field: 'description', message: 'Description must not exceed 5000 characters' });
-  }
+ 
 
   if (errors.length > 0) {
     return res.status(400).json({
