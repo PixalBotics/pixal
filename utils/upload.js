@@ -70,20 +70,23 @@ const pdfStorage = useCloudinary ? memoryStorage : multer.diskStorage({
 });
 
 // Image upload middleware
-const imageUpload = multer({ 
+const imageUpload = multer({
   storage: imageStorage,
   fileFilter: imageFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
+    fileSize: 15 * 1024 * 1024, // 15MB per uploaded file
+    // Multer defaults fieldSize to 1MB; long text (e.g. description) exceeds that before the controller runs
+    fieldSize: 15 * 1024 * 1024
   }
 });
 
 // PDF upload middleware
-const pdfUpload = multer({ 
+const pdfUpload = multer({
   storage: pdfStorage,
   fileFilter: pdfFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
+    fileSize: 25 * 1024 * 1024, // 25MB per file
+    fieldSize: 25 * 1024 * 1024
   }
 });
 
@@ -121,7 +124,8 @@ const blogUpload = multer({
   storage: blogStorage,
   fileFilter: blogFileFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB per file
+    fileSize: 25 * 1024 * 1024, // 25MB per file
+    fieldSize: 25 * 1024 * 1024
   }
 }).fields([
   { name: 'image', maxCount: 1 },
@@ -143,6 +147,12 @@ const handleMulterError = (err, req, res, next) => {
           success: false,
           message: 'Unexpected field in file upload',
           error: 'LIMIT_UNEXPECTED_FILE'
+        });
+      } else if (err.code === 'LIMIT_FIELD_VALUE') {
+        return res.status(400).json({
+          success: false,
+          message: 'A text field in the form is too large. Use the image/file field for uploads instead of embedding large data in description or other fields.',
+          error: 'LIMIT_FIELD_VALUE'
         });
       } else {
         return res.status(400).json({
