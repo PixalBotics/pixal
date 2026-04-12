@@ -4,8 +4,8 @@ const router = express.Router();
 const { createProject, getProjects, getProject, updateProject, deleteProject } = require('../controllers/projectController');
 const { isAuthenticated } = require('../middleware/auth');
 const allowRoles = require('../middleware/roleCheck');
-const { imageUpload, handleMulterError } = require('../utils/upload');
-const { validateProjectCreate, validateMongoId, validatePagination } = require('../middleware/validation');
+const { projectImagesUpload, handleMulterError } = require('../utils/upload');
+const { validateProjectCreate, validateProjectUpdate, validateMongoId, validatePagination } = require('../middleware/validation');
 
 /**
  * @swagger
@@ -19,7 +19,9 @@ const { validateProjectCreate, validateMongoId, validatePagination } = require('
  * /api/projects:
  *   post:
  *     summary: Create a new project
- *     description: Create a new project with optional image upload
+ *     description: |
+ *       Multipart fields: **name** (required), **description** (optional text),
+ *       **coverImage** (optional, single file), **images** (optional, up to 10 gallery files — separate from cover).
  *     security:
  *       - bearerAuth: []
  *     tags: [Projects]
@@ -35,15 +37,20 @@ const { validateProjectCreate, validateMongoId, validatePagination } = require('
  *               name:
  *                 type: string
  *                 description: Project name
- *                 example: "E-commerce Website"
  *               description:
  *                 type: string
- *                 description: Project description
- *                 example: "A full-featured online store"
- *               image:
+ *                 description: Project description (body text)
+ *               coverImage:
  *                 type: string
  *                 format: binary
- *                 description: Project image
+ *                 description: Single cover / thumbnail image
+ *               images:
+ *                 type: array
+ *                 maxItems: 10
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: Gallery images (max 10), separate field from coverImage
  *     responses:
  *       201:
  *         description: Project created successfully
@@ -52,7 +59,15 @@ const { validateProjectCreate, validateMongoId, validatePagination } = require('
  *       401:
  *         description: Unauthorized
  */
-router.post('/', isAuthenticated, allowRoles('admin', 'systemmanager'), imageUpload.single('image'), handleMulterError, createProject);
+router.post(
+  '/',
+  isAuthenticated,
+  allowRoles('admin', 'systemmanager'),
+  projectImagesUpload,
+  handleMulterError,
+  validateProjectCreate,
+  createProject
+);
 
 /**
  * @swagger
@@ -122,7 +137,9 @@ router.get('/:id', validateMongoId, getProject);
  * /api/projects/{id}:
  *   put:
  *     summary: Update a project
- *     description: Update project details and optionally upload new image
+ *     description: |
+ *       Optional **coverImage** replaces only the cover; optional **images** (up to 10) replaces only the gallery.
+ *       **name** and **description** can be updated without files.
  *     security:
  *       - bearerAuth: []
  *     tags: [Projects]
@@ -141,14 +158,17 @@ router.get('/:id', validateMongoId, getProject);
  *             properties:
  *               name:
  *                 type: string
- *                 description: Project name
  *               description:
  *                 type: string
- *                 description: Project description
- *               image:
+ *               coverImage:
  *                 type: string
  *                 format: binary
- *                 description: New project image (optional)
+ *               images:
+ *                 type: array
+ *                 maxItems: 10
+ *                 items:
+ *                   type: string
+ *                   format: binary
  *     responses:
  *       200:
  *         description: Project updated successfully
@@ -159,7 +179,16 @@ router.get('/:id', validateMongoId, getProject);
  *       403:
  *         description: Forbidden
  */
-router.put('/:id', isAuthenticated, allowRoles('admin', 'systemmanager'), imageUpload.single('image'), handleMulterError, validateMongoId, updateProject);
+router.put(
+  '/:id',
+  isAuthenticated,
+  allowRoles('admin', 'systemmanager'),
+  projectImagesUpload,
+  handleMulterError,
+  validateMongoId,
+  validateProjectUpdate,
+  updateProject
+);
 
 /**
  * @swagger

@@ -80,6 +80,22 @@ const imageUpload = multer({
   }
 });
 
+const MAX_PROJECT_GALLERY_IMAGES = 10;
+
+/** Project: one cover + up to 10 gallery images (field names `coverImage`, `images`) */
+const projectImagesUpload = multer({
+  storage: imageStorage,
+  fileFilter: imageFilter,
+  limits: {
+    fileSize: 15 * 1024 * 1024,
+    fieldSize: 15 * 1024 * 1024,
+    files: MAX_PROJECT_GALLERY_IMAGES + 1
+  }
+}).fields([
+  { name: 'coverImage', maxCount: 1 },
+  { name: 'images', maxCount: MAX_PROJECT_GALLERY_IMAGES }
+]);
+
 // PDF upload middleware
 const pdfUpload = multer({
   storage: pdfStorage,
@@ -174,4 +190,11 @@ const handleMulterError = (err, req, res, next) => {
   next();
 };
 
-module.exports = { imageUpload, pdfUpload, blogUpload, handleMulterError, getUploadsRoot };
+module.exports = {
+  imageUpload,
+  projectImagesUpload,
+  pdfUpload,
+  blogUpload,
+  handleMulterError,
+  getUploadsRoot
+};

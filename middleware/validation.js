@@ -45,6 +45,19 @@ const validateProjectCreate = [
   handleValidationErrors,
 ];
 
+const validateProjectUpdate = [
+  body('name')
+    .optional()
+    .trim()
+    .notEmpty().withMessage('Project name cannot be empty')
+    .isLength({ min: 3, max: 200 }).withMessage('Project name must be between 3 and 200 characters'),
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 5000 }).withMessage('Description must not exceed 5000 characters'),
+  handleValidationErrors,
+];
+
 // Team validations
 const validateTeamCreate = [
   body('name')
@@ -108,6 +121,7 @@ const validatePagination = [
 module.exports = {
   validateBlogCreate,
   validateProjectCreate,
+  validateProjectUpdate,
   validateTeamCreate,
   validateTestimonialCreate,
   validateMongoId,

@@ -33,7 +33,8 @@ const projectData = [
   {
     name: 'Warehouse Automation',
     description: 'Full warehouse automation with robotic pickers and inventory management system.',
-    imageUrl: '/uploads/projects/warehouse.jpg',
+    coverImageUrl: '/uploads/projects/warehouse.jpg',
+    images: [{ url: '/uploads/projects/warehouse.jpg' }],
     reviews: [
       { name: 'Client A', rating: 5, comment: 'Excellent implementation.' },
       { name: 'Client B', rating: 4, comment: 'Smooth rollout.' },
@@ -42,7 +43,8 @@ const projectData = [
   {
     name: 'Smart Manufacturing Line',
     description: 'IoT-based production line monitoring and control system.',
-    imageUrl: '/uploads/projects/manufacturing.jpg',
+    coverImageUrl: '/uploads/projects/manufacturing.jpg',
+    images: [{ url: '/uploads/projects/manufacturing.jpg' }],
     reviews: [
       { name: 'Manager', rating: 5, comment: 'Reduced downtime by 40%.' },
     ],
@@ -50,13 +52,15 @@ const projectData = [
   {
     name: 'Agricultural Drone System',
     description: 'Drone fleet for crop monitoring and spraying automation.',
-    imageUrl: '/uploads/projects/drone.jpg',
+    coverImageUrl: '/uploads/projects/drone.jpg',
+    images: [{ url: '/uploads/projects/drone.jpg' }],
     reviews: [],
   },
   {
     name: 'Retail Inventory Bot',
     description: 'Autonomous inventory counting and shelf monitoring robot.',
-    imageUrl: '/uploads/projects/retail-bot.jpg',
+    coverImageUrl: '/uploads/projects/retail-bot.jpg',
+    images: [{ url: '/uploads/projects/retail-bot.jpg' }],
     reviews: [
       { name: 'Store Manager', rating: 5, comment: 'Saves hours every week.' },
     ],
