@@ -18,6 +18,7 @@ const paginate = async (model, req, searchFields = [], additionalFilters = {}) =
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
     const search = (req.query.search || '').trim();
     const sortBy = req.query.sortBy || '-createdAt';
+    const fetchAll = String(req.query.all || '').toLowerCase() === 'true';
 
     // Calculate skip value
     const skip = (page - 1) * limit;
@@ -35,12 +36,13 @@ const paginate = async (model, req, searchFields = [], additionalFilters = {}) =
     let data, total;
     try {
       [data, total] = await Promise.all([
-        model.find(searchQuery)
-          .sort(sortBy)
-          .skip(skip)
-          .limit(limit)
-          .lean()
-          .exec(),
+        (() => {
+          const query = model.find(searchQuery).sort(sortBy);
+          if (!fetchAll) {
+            query.skip(skip).limit(limit);
+          }
+          return query.lean().exec();
+        })(),
         model.countDocuments(searchQuery).exec()
       ]);
     } catch (dbError) {
@@ -49,9 +51,10 @@ const paginate = async (model, req, searchFields = [], additionalFilters = {}) =
     }
 
     // Calculate metadata
-    const totalPages = Math.ceil(total / limit) || 0;
-    const hasNextPage = page < totalPages;
-    const hasPrevPage = page > 1;
+    const effectiveLimit = fetchAll ? (total || 0) : limit;
+    const totalPages = fetchAll ? (total > 0 ? 1 : 0) : (Math.ceil(total / limit) || 0);
+    const hasNextPage = fetchAll ? false : page < totalPages;
+    const hasPrevPage = fetchAll ? false : page > 1;
 
     return {
       success: true,
@@ -59,8 +62,8 @@ const paginate = async (model, req, searchFields = [], additionalFilters = {}) =
       pagination: {
         total: total || 0,
         count: data ? data.length : 0,
-        page,
-        limit,
+        page: fetchAll ? 1 : page,
+        limit: effectiveLimit,
         totalPages,
         hasNextPage,
         hasPrevPage,

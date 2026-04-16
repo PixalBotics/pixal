@@ -55,6 +55,7 @@ exports.getTeam = catchAsyncError(async (req, res, next) => {
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 10));
   const search = (req.query.search || '').trim();
+  const fetchAll = String(req.query.all || '').toLowerCase() === 'true';
   const skip = (page - 1) * limit;
 
   const query = {};
@@ -68,7 +69,6 @@ exports.getTeam = catchAsyncError(async (req, res, next) => {
 
   const members = await Team.find(query).sort('-createdAt').lean().exec();
 
-  const priorityRoles = ['co-founder', 'founder', 'cto'];
   const getRolePriority = (role = '') => {
     const normalizedRole = String(role).toLowerCase();
     if (normalizedRole.includes('co-founder')) return 0;
@@ -84,8 +84,10 @@ exports.getTeam = catchAsyncError(async (req, res, next) => {
   });
 
   const total = members.length;
-  const paginatedMembers = members.slice(skip, skip + limit);
-  const totalPages = Math.ceil(total / limit) || 0;
+  const paginatedMembers = fetchAll ? members : members.slice(skip, skip + limit);
+  const totalPages = fetchAll ? (total > 0 ? 1 : 0) : (Math.ceil(total / limit) || 0);
+  const hasNextPage = fetchAll ? false : page < totalPages;
+  const hasPrevPage = fetchAll ? false : page > 1;
 
   res.status(200).json({
     success: true,
@@ -94,13 +96,13 @@ exports.getTeam = catchAsyncError(async (req, res, next) => {
     pagination: {
       total,
       count: paginatedMembers.length,
-      page,
-      limit,
+      page: fetchAll ? 1 : page,
+      limit: fetchAll ? total : limit,
       totalPages,
-      hasNextPage: page < totalPages,
-      hasPrevPage: page > 1,
-      nextPage: page < totalPages ? page + 1 : null,
-      prevPage: page > 1 ? page - 1 : null,
+      hasNextPage,
+      hasPrevPage,
+      nextPage: hasNextPage ? page + 1 : null,
+      prevPage: hasPrevPage ? page - 1 : null,
     },
   });
 });
