@@ -71,8 +71,8 @@ exports.getTeam = catchAsyncError(async (req, res, next) => {
 
   const getRolePriority = (role = '') => {
     const normalizedRole = String(role).toLowerCase();
-    if (normalizedRole.includes('co-founder')) return 0;
-    if (normalizedRole.includes('founder')) return 1;
+    if (normalizedRole.includes('founder') && !normalizedRole.includes('co-founder')) return 0;
+    if (normalizedRole.includes('co-founder')) return 1;
     if (normalizedRole.includes('cto')) return 2;
     return 3;
   };
