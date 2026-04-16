@@ -1,7 +1,6 @@
 const Team = require('../models/Team');
 const catchAsyncError = require('../middleware/catchAsyncError');
 const ErrorHandler = require('../utils/ErrorHandler');
-const { paginate } = require('../utils/pagination');
 const { isConfigured: cloudinaryConfigured, uploadImage: uploadToCloudinary, deleteByUrl: deleteFromCloudinary } = require('../utils/cloudinary');
 
 
@@ -53,14 +52,56 @@ exports.createTeamMember = catchAsyncError(async (req, res, next) => {
 });
 
 exports.getTeam = catchAsyncError(async (req, res, next) => {
-  // Use pagination utility with search on 'name', 'role', and 'bio' fields
-  const result = await paginate(Team, req, ['name', 'role', 'bio']);
-  
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 10));
+  const search = (req.query.search || '').trim();
+  const skip = (page - 1) * limit;
+
+  const query = {};
+  if (search) {
+    query.$or = [
+      { name: { $regex: search, $options: 'i' } },
+      { role: { $regex: search, $options: 'i' } },
+      { bio: { $regex: search, $options: 'i' } },
+    ];
+  }
+
+  const members = await Team.find(query).sort('-createdAt').lean().exec();
+
+  const priorityRoles = ['co-founder', 'founder', 'cto'];
+  const getRolePriority = (role = '') => {
+    const normalizedRole = String(role).toLowerCase();
+    if (normalizedRole.includes('co-founder')) return 0;
+    if (normalizedRole.includes('founder')) return 1;
+    if (normalizedRole.includes('cto')) return 2;
+    return 3;
+  };
+
+  members.sort((a, b) => {
+    const rolePriorityDiff = getRolePriority(a.role) - getRolePriority(b.role);
+    if (rolePriorityDiff !== 0) return rolePriorityDiff;
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
+
+  const total = members.length;
+  const paginatedMembers = members.slice(skip, skip + limit);
+  const totalPages = Math.ceil(total / limit) || 0;
+
   res.status(200).json({
     success: true,
     message: 'Team members fetched successfully',
-    data: { members: result.data },
-    pagination: result.pagination,
+    data: { members: paginatedMembers },
+    pagination: {
+      total,
+      count: paginatedMembers.length,
+      page,
+      limit,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+      nextPage: page < totalPages ? page + 1 : null,
+      prevPage: page > 1 ? page - 1 : null,
+    },
   });
 });
 
