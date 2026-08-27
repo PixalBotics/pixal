@@ -9,7 +9,8 @@
     "dev": "nodemon server.js",
     "run": "nodemon server.js",
     "seed": "node scripts/seed.js",
-    "create-admin": "node scripts/createAdmin.js"
+    "create-admin": "node scripts/createAdmin.js",
+    "post-blogs": "node scripts/postDailyBlogs.js"
   },
   "repository": {
     "type": "git",
