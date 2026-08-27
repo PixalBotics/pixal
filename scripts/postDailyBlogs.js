@@ -52,14 +52,14 @@ async function blogExists(baseUrl, name) {
   return blogs.some((b) => b.name.trim().toLowerCase() === name.trim().toLowerCase());
 }
 
-async function createBlog(baseUrl, token, name, content) {
+async function createBlog(baseUrl, token, name, content, imageUrl) {
   const res = await fetch(`${baseUrl}/api/blogs`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ name, content }),
+    body: JSON.stringify(imageUrl ? { name, content, imageUrl } : { name, content }),
   });
   const data = await res.json();
   if (!res.ok || !data.success) {
@@ -94,7 +94,7 @@ async function main() {
     }
 
     try {
-      const blog = await createBlog(baseUrl, token, post.name, post.content);
+      const blog = await createBlog(baseUrl, token, post.name, post.content, post.imageUrl);
       console.log(`Published: "${post.name}" (id: ${blog._id})`);
       published += 1;
     } catch (err) {
