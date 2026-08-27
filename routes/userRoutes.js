@@ -66,7 +66,11 @@ const allowRoles = require('../middleware/roleCheck');
  *       403:
  *         description: Forbidden - Admin only
  */
-router.post('/register', registerUser);
+// SECURITY FIX: this endpoint was public with no auth check, so anyone could
+// self-register an account with role: "admin" in the request body and gain
+// full admin access. The swagger docs above already documented it as
+// "Admin only" - this now actually enforces that.
+router.post('/register', isAuthenticated, allowRoles('admin'), registerUser);
 
 /**
  * @swagger
