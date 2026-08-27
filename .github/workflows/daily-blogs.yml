@@ -1,0 +1,37 @@
+name: Daily Blog Publisher
+
+on:
+  schedule:
+    # Runs at 06:00 UTC every day (11:00 AM Pakistan time / PKT, UTC+5)
+    - cron: '0 6 * * *'
+  workflow_dispatch: {} # allows manually triggering a run from the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  publish-blogs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Publish next blog posts from the queue
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: node scripts/postDailyBlogs.js
+
+      - name: Commit updated blog queue
+        run: |
+          git config user.name "pixal-blog-bot"
+          git config user.email "actions@github.com"
+          git add content/blog-queue.json
+          git diff --quiet --cached || git commit -m "chore: mark daily blog posts as published [skip ci]"
+          git push
