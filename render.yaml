@@ -49,3 +49,39 @@ services:
         value: ${SERVICE_URL}/ping
       - key: KEEP_ALIVE_INTERVAL
         value: 300000
+
+  - type: cron
+    name: pixal-post-social
+    env: node
+    schedule: "0 6,11,16 * * *"
+    buildCommand: npm install
+    startCommand: node scripts/postSocial.js
+    envVars:
+      - key: API_BASE_URL
+        sync: false
+      - key: FB_PAGE_ID
+        sync: false
+      - key: FB_PAGE_ACCESS_TOKEN
+        sync: false
+      - key: IG_USER_ID
+        sync: false
+      - key: POSTS_PER_RUN
+        value: 1
+      - key: SLOT_HOURS
+        value: 8
+
+  - type: cron
+    name: pixal-post-daily-blogs
+    env: node
+    schedule: "0 5 * * *"
+    buildCommand: npm install
+    startCommand: node scripts/postDailyBlogs.js
+    envVars:
+      - key: API_BASE_URL
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: POSTS_PER_RUN
+        value: 2
