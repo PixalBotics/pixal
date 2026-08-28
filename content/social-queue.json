@@ -1,5 +1,40 @@
 [
   {
+    "id": "seo-01",
+    "type": "sales",
+    "imageFile": "seo-01.png",
+    "caption": "SEO shouldn't feel like a mystery. 🔍\n\nKeyword research, technical SEO, local SEO, backlinks, and tracking & reporting — we handle all 5, under one roof, so you're not juggling five different freelancers.\n\nWant a free breakdown of where your SEO stands today? Comment \"SEO\" or DM us 👇",
+    "hashtags": "#SEO #SEOServices #DigitalMarketing #SoftwareAgency #PixalBotics #LocalSEO #SearchEngineOptimization #SmallBusinessMarketing"
+  },
+  {
+    "id": "seo-02",
+    "type": "sales",
+    "imageFile": "seo-02.png",
+    "caption": "Is your website invisible on Google? 👀\n\nNo visibility, a slow site, zero leads from SEO, and competitors ranking above you — these 4 problems are silently costing you customers every single day.\n\nWe fix all 4 with one system: keyword research, technical SEO, local SEO, backlinks, and reporting.\n\nGet your free SEO audit — comment \"AUDIT\" or DM us 👇",
+    "hashtags": "#SEO #GoogleRanking #DigitalMarketing #SoftwareAgency #PixalBotics #LocalSEO #SEOAudit #SmallBusinessTips"
+  },
+  {
+    "id": "tip-01",
+    "type": "informative",
+    "imageFile": "tip-01.png",
+    "caption": "Most visitors decide in 3 seconds whether to stay or leave your site. ⏱️\n\nA website isn't just a digital brochure — it's your best (or worst) salesperson, working 24/7. First impressions, load speed, and a clear next step are what turn visitors into customers.\n\nWant your site checked for free? Comment \"CHECK\" 👇",
+    "hashtags": "#WebDesign #WebsiteTips #UX #SoftwareAgency #PixalBotics #ConversionRate #DigitalMarketing"
+  },
+  {
+    "id": "meme-07",
+    "type": "meme",
+    "imageFile": "meme-07.png",
+    "caption": "Client: \"Make the logo bigger.\" Also client: \"But keep it minimal.\" 😅\n\nEvery. Single. Project.\n\nTag the agency that knows this pain 👇",
+    "hashtags": "#DesignerLife #ClientProblems #AgencyLife #SoftwareAgency #PixalBotics #TechMemes #RelatableContent"
+  },
+  {
+    "id": "case-01",
+    "type": "case-study",
+    "imageFile": "case-01.png",
+    "caption": "From invisible on Google to page 1 in 90 days. 📈\n\n+140% organic traffic, 3x more qualified leads — this is what happens when SEO, web design, and marketing work together as one strategy, not separate services.\n\nWant results like this for your business? Get your free SEO audit — comment \"AUDIT\" or DM us 👇",
+    "hashtags": "#CaseStudy #SEOResults #ClientResults #SoftwareAgency #PixalBotics #DigitalMarketing #SEO"
+  },
+  {
     "id": "info-01",
     "type": "informative",
     "imageFile": "info-01.png",
