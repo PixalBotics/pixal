@@ -35,6 +35,20 @@
     "hashtags": "#CaseStudy #SEOResults #ClientResults #SoftwareAgency #PixalBotics #DigitalMarketing #SEO"
   },
   {
+    "id": "case-02",
+    "type": "case-study",
+    "imageFile": "case-02.png",
+    "caption": "From missed leads to zero missed follow-ups. 📞\n\nA simple CRM + automation setup meant every single lead got an instant reply and a scheduled follow-up — 70% faster response time, 2x more leads converted, 24/7 automated follow-up.\n\nWant this running in your business? Comment \"CRM\" or DM us 👇",
+    "hashtags": "#CaseStudy #CRM #LeadGeneration #SalesAutomation #SoftwareAgency #PixalBotics #ClientResults"
+  },
+  {
+    "id": "case-03",
+    "type": "case-study",
+    "imageFile": "case-03.png",
+    "caption": "From answering the same questions all day to answering none. 🤖\n\nAn AI chat assistant now handles 80% of repetitive questions instantly, 24/7 — saving the team 3 hours a day, so they only step in for leads that actually need a human.\n\nWant to see how AI could help your business? DM us or comment \"AI\" 👇",
+    "hashtags": "#CaseStudy #AIAutomation #ArtificialIntelligence #ClientResults #SoftwareAgency #PixalBotics #ChatbotMarketing"
+  },
+  {
     "id": "info-01",
     "type": "informative",
     "imageFile": "info-01.png",
