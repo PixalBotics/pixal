@@ -28,8 +28,23 @@
  *
  * Optional:
  *   POSTS_PER_RUN         - how many posts to publish this run (default 1)
- *   SLOT_HOURS            - hours per content "slot" used to pick which
- *                           queue item is "due" (default 8 -> ~3 slots/day)
+ *   POST_HOURS_UTC        - comma-separated UTC hours this cron actually
+ *                           fires at, matching render.yaml's cron schedule
+ *                           (default "6,11,16" -> 3 runs/day)
+ *
+ * INDEX SELECTION (fixed 2026-09-01): the old approach picked the queue
+ * index from a raw 8-hour wall-clock bucket (Date.now() / 8h). Because the
+ * actual cron fires unevenly (6am, 11am, 4pm UTC - gaps of 5h, 5h, 14h,
+ * not a clean 8h), two runs in the same calendar day often landed in the
+ * SAME bucket, so the "skip if already posted" logic kept bumping forward
+ * by only 1 and the same handful of queue items kept resurfacing instead
+ * of the full queue rotating - this is why the same 3-4 posts looked like
+ * they were the only ones ever going out.
+ *
+ * Fix: derive the index from how many scheduled runs have actually
+ * elapsed since a fixed epoch (one integer step per real cron fire,
+ * matching POST_HOURS_UTC exactly), so every run advances to a genuinely
+ * new queue item and the full queue rotates before anything repeats.
  */
 
 const fs = require('fs');
@@ -37,7 +52,11 @@ const path = require('path');
 
 const QUEUE_PATH = path.join(__dirname, '..', 'content', 'social-queue.json');
 const POSTS_PER_RUN = parseInt(process.env.POSTS_PER_RUN || '1', 10);
-const SLOT_HOURS = parseInt(process.env.SLOT_HOURS || '8', 10);
+const POST_HOURS_UTC = (process.env.POST_HOURS_UTC || '6,11,16')
+  .split(',')
+  .map((h) => parseInt(h.trim(), 10))
+  .sort((a, b) => a - b);
+const EPOCH = Date.UTC(2026, 0, 1); // fixed reference point, never changes
 const GRAPH = 'https://graph.facebook.com/v19.0';
 
 function loadQueue() {
@@ -48,10 +67,24 @@ function fullCaption(post) {
   return `${post.caption}\n\n${post.hashtags}`;
 }
 
+// Counts exactly how many scheduled slots (per POST_HOURS_UTC) have
+// elapsed since EPOCH, so each real cron fire is its own unique step -
+// no two runs on the same day can ever collide on the same index.
+function scheduledSlotsElapsed(now) {
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const daysElapsed = Math.floor((now - EPOCH) / msPerDay);
+  const dayStart = EPOCH + daysElapsed * msPerDay;
+  const hoursIntoDay = (now - dayStart) / (60 * 60 * 1000);
+  let slotsToday = 0;
+  for (const h of POST_HOURS_UTC) {
+    if (hoursIntoDay >= h) slotsToday += 1;
+  }
+  return daysElapsed * POST_HOURS_UTC.length + slotsToday;
+}
+
 function currentSlotIndex(queueLength) {
-  const slotMs = SLOT_HOURS * 60 * 60 * 1000;
-  const slot = Math.floor(Date.now() / slotMs);
-  return slot % queueLength;
+  const slots = scheduledSlotsElapsed(Date.now());
+  return ((slots % queueLength) + queueLength) % queueLength;
 }
 
 async function graphGet(pathAndQuery) {
@@ -76,13 +109,13 @@ async function graphPost(nodePath, params) {
 async function recentlyPostedCaptions({ pageId, igUserId, pageToken }) {
   const captions = [];
   try {
-    const fb = await graphGet(`${pageId}/posts?fields=message&limit=10&access_token=${pageToken}`);
+    const fb = await graphGet(`${pageId}/posts?fields=message&limit=30&access_token=${pageToken}`);
     for (const p of fb.data || []) if (p.message) captions.push(p.message);
   } catch (e) {
     console.warn('Could not read recent FB posts (continuing):', e.message);
   }
   try {
-    const ig = await graphGet(`${igUserId}/media?fields=caption&limit=10&access_token=${pageToken}`);
+    const ig = await graphGet(`${igUserId}/media?fields=caption&limit=30&access_token=${pageToken}`);
     for (const p of ig.data || []) if (p.caption) captions.push(p.caption);
   } catch (e) {
     console.warn('Could not read recent IG media (continuing):', e.message);
@@ -90,9 +123,12 @@ async function recentlyPostedCaptions({ pageId, igUserId, pageToken }) {
   return captions;
 }
 
+// Full-caption match (not just a short prefix) - a short prefix match can
+// false-positive on two different posts that happen to open the same way,
+// which would cause good, unposted content to be skipped as "duplicate".
 function alreadyPosted(candidateCaption, recentCaptions) {
-  const head = candidateCaption.slice(0, 40).trim().toLowerCase();
-  return recentCaptions.some((c) => c.trim().toLowerCase().startsWith(head));
+  const candidate = candidateCaption.trim().toLowerCase();
+  return recentCaptions.some((c) => c.trim().toLowerCase() === candidate);
 }
 
 async function postToFacebookPage({ pageId, pageToken, imageUrl, caption }) {

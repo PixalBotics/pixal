@@ -20,6 +20,24 @@
  *
  * Optional:
  *   POSTS_PER_RUN  - how many new posts to publish per run (default 2)
+ *
+ * FIXED 2026-09-01: this used to decide "what's next" purely by asking
+ * the live API's search endpoint whether each queue title already
+ * existed (GET /api/blogs?search=<title>). Blog titles with punctuation
+ * (colons, parentheses, "&", "vs.") can fail to match themselves in a
+ * text-search index, so the check silently came back "not found" for
+ * titles that were, in fact, already published - and the script kept
+ * re-publishing queue[0] and queue[1] every single day instead of
+ * advancing through the other 12 topics.
+ *
+ * Fix: fetch the full blog list once (no search param - a real listing,
+ * not a text-search query) and compare titles by exact normalized string
+ * match against that list. The "which day am I on" question is answered
+ * the same deterministic way as postSocial.js: count how many scheduled
+ * daily runs have elapsed since a fixed epoch, so the starting index
+ * always advances by POSTS_PER_RUN per real day regardless of API state,
+ * and the exact-match listing check is only a safety net against
+ * double-publishing if a run fires twice.
  */
 
 const fs = require('fs');
@@ -27,6 +45,15 @@ const path = require('path');
 
 const QUEUE_PATH = path.join(__dirname, '..', 'content', 'blog-queue.json');
 const POSTS_PER_RUN = parseInt(process.env.POSTS_PER_RUN || '2', 10);
+const EPOCH = Date.UTC(2026, 0, 1); // fixed reference point, never changes
+
+function normalizeTitle(t) {
+  return t.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function daysElapsedSinceEpoch(now) {
+  return Math.floor((now - EPOCH) / (24 * 60 * 60 * 1000));
+}
 
 async function login(baseUrl, email, password) {
   const res = await fetch(`${baseUrl}/api/users/login`, {
@@ -43,13 +70,25 @@ async function login(baseUrl, email, password) {
   return token;
 }
 
-async function blogExists(baseUrl, name) {
-  const url = `${baseUrl}/api/blogs?search=${encodeURIComponent(name)}&limit=5&all=false`;
-  const res = await fetch(url);
-  const data = await res.json();
-  if (!res.ok || !data.success) return false;
-  const blogs = data.data?.blogs || [];
-  return blogs.some((b) => b.name.trim().toLowerCase() === name.trim().toLowerCase());
+// Fetches the full blog list (a real listing, not a fragile text-search
+// query) so exact-title matching cannot be defeated by punctuation in a
+// search index. Paginates defensively in case the API caps page size.
+async function fetchAllBlogTitles(baseUrl) {
+  const titles = new Set();
+  let page = 1;
+  const limit = 100;
+  for (let i = 0; i < 20; i += 1) {
+    // eslint-disable-next-line no-await-in-loop
+    const res = await fetch(`${baseUrl}/api/blogs?all=true&limit=${limit}&page=${page}`);
+    // eslint-disable-next-line no-await-in-loop
+    const data = await res.json();
+    if (!res.ok || !data.success) break;
+    const blogs = data.data?.blogs || [];
+    for (const b of blogs) if (b.name) titles.add(normalizeTitle(b.name));
+    if (blogs.length < limit) break;
+    page += 1;
+  }
+  return titles;
 }
 
 async function createBlog(baseUrl, token, name, content, imageUrl) {
@@ -79,15 +118,32 @@ async function main() {
   }
 
   const queue = JSON.parse(fs.readFileSync(QUEUE_PATH, 'utf8'));
+  if (!queue.length) {
+    console.log('blog-queue.json is empty, nothing to post.');
+    return;
+  }
+
+  const existingTitles = await fetchAllBlogTitles(baseUrl);
+
+  // Deterministic "which day am I on" - advances by POSTS_PER_RUN per real
+  // calendar day regardless of API state, so the queue actually rotates.
+  const dayNumber = daysElapsedSinceEpoch(Date.now());
+  const startIndex = ((dayNumber * POSTS_PER_RUN) % queue.length + queue.length) % queue.length;
 
   let published = 0;
   let token = null;
+  let attempts = 0;
 
-  for (const post of queue) {
-    if (published >= POSTS_PER_RUN) break;
+  let idx = startIndex;
+  while (published < POSTS_PER_RUN && attempts < queue.length) {
+    const post = queue[idx];
+    attempts += 1;
 
-    const alreadyExists = await blogExists(baseUrl, post.name);
-    if (alreadyExists) continue;
+    if (existingTitles.has(normalizeTitle(post.name))) {
+      console.log(`Skipping "${post.name}" - already live on the site.`);
+      idx = (idx + 1) % queue.length;
+      continue;
+    }
 
     if (!token) {
       token = await login(baseUrl, email, password);
@@ -96,23 +152,22 @@ async function main() {
     try {
       const blog = await createBlog(baseUrl, token, post.name, post.content, post.imageUrl);
       console.log(`Published: "${post.name}" (id: ${blog._id})`);
+      existingTitles.add(normalizeTitle(post.name));
       published += 1;
     } catch (err) {
       console.error(`Skipped "${post.name}": ${err.message}`);
     }
+
+    idx = (idx + 1) % queue.length;
   }
 
   if (published === 0) {
-    console.log('Nothing new to publish this run (queue exhausted or all titles already exist).');
+    console.log('Nothing new to publish this run (every candidate in today\'s slot was already live).');
   } else {
-    console.log(`Done. Published ${published} post(s) this run.`);
+    console.log(`Done. Published ${published} post(s) this run, starting from queue index ${startIndex}.`);
   }
 
-  // Rough estimate of how many queue entries have not been detected as posted yet.
-  const stillPending = [];
-  for (const post of queue) {
-    if (!(await blogExists(baseUrl, post.name))) stillPending.push(post.name);
-  }
+  const stillPending = queue.filter((post) => !existingTitles.has(normalizeTitle(post.name)));
   console.log(`${stillPending.length} post(s) remaining in the queue.`);
   if (stillPending.length <= 4) {
     console.warn('Queue is running low (4 or fewer posts left) - ask for more blog content to be added soon.');
